@@ -1,14 +1,13 @@
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.core.config import settings
 
 app = FastAPI(
-    title="DDoS Lab Simulator",
+    title=settings.APP_NAME,
     description="A controlled DDoS attack simulation and detection platform.",
-    version="1.0.0",
+    version=settings.APP_VERSION,
 )
 
-# Allow local frontend communication
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -24,13 +23,13 @@ app.add_middleware(
 @app.get("/")
 async def root():
     return {
-        "message": "DDoS Lab Simulator API is running.",
+        "message": f"{settings.APP_NAME} API is running.",
         "status": "online",
-        "version": "1.0.0",
+        "version": settings.APP_VERSION,
     }
 
 
-@app.get("/api/v1/health")
+@app.get(f"{settings.API_PREFIX}/health")
 async def health_check():
     return {
         "status": "healthy",
