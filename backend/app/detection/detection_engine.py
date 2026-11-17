@@ -1,13 +1,10 @@
 
 from datetime import datetime, timezone
 
-from app.core.config import settings
-
 
 class DDoSDetectionEngine:
     """
-    Detects abnormal traffic patterns using configurable thresholds.
-    This engine analyzes synthetic simulation metrics only.
+    Detects abnormal synthetic traffic using configurable thresholds.
     """
 
     def __init__(self):
@@ -20,7 +17,7 @@ class DDoSDetectionEngine:
         self._alerts = []
         self._max_alerts = 100
 
-    def analyze(self, metrics: dict):
+    def analyze(self, metrics: dict, store_alerts: bool = True):
         alerts = []
 
         if metrics.get("status") != "running":
@@ -77,11 +74,14 @@ class DDoSDetectionEngine:
             "analyzed_at": datetime.now(timezone.utc).isoformat(),
         }
 
-        if alerts:
-            self._alerts.append(result)
-            self._alerts = self._alerts[-self._max_alerts:]
+        if alerts and store_alerts:
+            self.record_alert(result)
 
         return result
+
+    def record_alert(self, result: dict):
+        self._alerts.append(result)
+        self._alerts = self._alerts[-self._max_alerts:]
 
     def _calculate_severity(self, alerts: list):
         alert_types = {alert["type"] for alert in alerts}

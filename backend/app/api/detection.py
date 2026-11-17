@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Query
 
 from app.api.simulation import engine
-from app.detection.detection_engine import DDoSDetectionEngine
+from app.detection.monitoring_service import monitoring_service
 
 
 router = APIRouter(
@@ -10,14 +10,12 @@ router = APIRouter(
     tags=["Detection"],
 )
 
-detector = DDoSDetectionEngine()
-
 
 @router.post("/analyze")
 async def analyze_traffic():
     metrics = await engine.get_metrics()
 
-    result = detector.analyze(metrics)
+    result = monitoring_service.detector.analyze(metrics)
 
     return {
         "message": "Traffic analysis completed.",
@@ -32,6 +30,7 @@ async def analyze_traffic():
 async def get_alerts(
     limit: int = Query(default=50, ge=1, le=100),
 ):
+    detector = monitoring_service.detector
     alerts = detector.get_alerts(limit=limit)
 
     return {
@@ -46,11 +45,41 @@ async def get_alerts(
 
 @router.delete("/alerts")
 async def clear_alerts():
-    detector.clear_alerts()
+    monitoring_service.detector.clear_alerts()
 
     return {
         "message": "All detection alerts cleared successfully.",
         "data": {
             "total_alerts": 0,
         },
+    }
+
+
+@router.post("/monitoring/start")
+async def start_monitoring():
+    status = await monitoring_service.start()
+
+    return {
+        "message": "Automatic monitoring started successfully.",
+        "data": status,
+    }
+
+
+@router.post("/monitoring/stop")
+async def stop_monitoring():
+    status = await monitoring_service.stop()
+
+    return {
+        "message": "Automatic monitoring stopped successfully.",
+        "data": status,
+    }
+
+
+@router.get("/monitoring/status")
+async def get_monitoring_status():
+    status = await monitoring_service.get_status()
+
+    return {
+        "message": "Monitoring status retrieved successfully.",
+        "data": status,
     }
