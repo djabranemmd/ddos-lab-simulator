@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.api.simulation import router as simulation_router
+from app.api.detection import router as detection_router
 
 
 app = FastAPI(
@@ -24,9 +25,13 @@ app.add_middleware(
 )
 
 
-# Register API routers
 app.include_router(
     simulation_router,
+    prefix=settings.API_PREFIX,
+)
+
+app.include_router(
+    detection_router,
     prefix=settings.API_PREFIX,
 )
 

@@ -13,6 +13,7 @@ class Settings(BaseSettings):
 
     # Monitoring configuration
     MONITORING_INTERVAL: float = 1.0
+    HISTORY_LIMIT: int = 300
 
     class Config:
         env_file = ".env"

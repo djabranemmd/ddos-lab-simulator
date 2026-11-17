@@ -1,6 +1,7 @@
 
 import asyncio
 import random
+from collections import deque
 from datetime import datetime, timezone
 
 from app.core.config import settings
@@ -27,6 +28,14 @@ class TrafficSimulationEngine:
             "response_time_ms": 0.0,
             "last_updated": None,
         }
+
+        self._history = deque(maxlen=settings.HISTORY_LIMIT)
+
+    def _record_history(self):
+        """Store a snapshot of the current metrics."""
+        snapshot = self._metrics.copy()
+        snapshot["timestamp"] = datetime.now(timezone.utc).isoformat()
+        self._history.append(snapshot)
 
     async def start(
         self,
@@ -86,10 +95,16 @@ class TrafficSimulationEngine:
             "last_updated": datetime.now(timezone.utc).isoformat(),
         })
 
+        self._record_history()
+
         return await self.get_metrics()
 
     async def get_metrics(self):
         return self._metrics.copy()
+
+    async def get_history(self, limit: int = 50):
+        history = list(self._history)
+        return history[-limit:]
 
     async def _simulation_loop(self, mode: str, bots: int, intensity: int):
         while True:
@@ -128,5 +143,7 @@ class TrafficSimulationEngine:
                 "response_time_ms": round(response_time, 2),
                 "last_updated": datetime.now(timezone.utc).isoformat(),
             })
+
+            self._record_history()
 
             await asyncio.sleep(settings.MONITORING_INTERVAL)

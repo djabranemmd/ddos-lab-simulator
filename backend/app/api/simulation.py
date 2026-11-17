@@ -1,7 +1,7 @@
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-
+from fastapi import APIRouter, HTTPException, Query
 from app.engine.traffic_engine import TrafficSimulationEngine
 
 
@@ -58,4 +58,24 @@ async def get_simulation_status():
     return {
         "message": "Simulation status retrieved successfully.",
         "data": metrics,
+    }
+
+
+@router.get("/history")
+async def get_simulation_history(
+    limit: int = Query(
+        default=50,
+        ge=1,
+        le=300,
+        description="Number of recent monitoring samples to retrieve.",
+    ),
+):
+    history = await engine.get_history(limit=limit)
+
+    return {
+        "message": "Simulation history retrieved successfully.",
+        "data": {
+            "count": len(history),
+            "samples": history,
+        },
     }
