@@ -1,6 +1,6 @@
 
 from contextlib import asynccontextmanager
-
+from app.api.mitigation import router as mitigation_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -63,3 +63,8 @@ async def health_check():
         "status": "healthy",
         "service": "ddos-lab-backend",
     }
+    
+app.include_router(
+    mitigation_router,
+    prefix=settings.API_PREFIX,
+)
