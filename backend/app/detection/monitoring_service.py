@@ -5,24 +5,18 @@ from datetime import datetime, timezone
 
 from app.api.simulation import engine
 from app.detection.detection_engine import DDoSDetectionEngine
+from app.mitigation.mitigation_engine import mitigation_engine
 
 
 class AutomaticMonitoringService:
-    """
-    Automatically analyzes synthetic traffic metrics.
-    No real network traffic is inspected or transmitted.
-    """
-
     def __init__(self):
         self.detector = DDoSDetectionEngine()
         self._task = None
         self._running = False
-
         self._analyzed_samples = 0
         self._detected_samples = 0
         self._last_analysis = None
-
-        # Prevent repeated identical alerts every second.
+        self._last_mitigation = None
         self._last_alert_signature = None
         self._last_alert_time = 0.0
         self._alert_cooldown = 10.0
@@ -33,7 +27,6 @@ class AutomaticMonitoringService:
 
         self._running = True
         self._task = asyncio.create_task(self._monitor_loop())
-
         return await self.get_status()
 
     async def stop(self):
@@ -41,7 +34,6 @@ class AutomaticMonitoringService:
 
         if self._task and not self._task.done():
             self._task.cancel()
-
             try:
                 await self._task
             except asyncio.CancelledError:
@@ -56,6 +48,7 @@ class AutomaticMonitoringService:
             "analyzed_samples": self._analyzed_samples,
             "detected_samples": self._detected_samples,
             "last_analysis": self._last_analysis,
+            "last_mitigation": self._last_mitigation,
         }
 
     async def _monitor_loop(self):
@@ -65,7 +58,7 @@ class AutomaticMonitoringService:
             if metrics.get("status") == "running":
                 now = datetime.now(timezone.utc).isoformat()
 
-                # First analyze without automatically storing an alert.
+                # 1. Analyze incoming synthetic traffic.
                 result = self.detector.analyze(
                     metrics,
                     store_alerts=False,
@@ -74,15 +67,17 @@ class AutomaticMonitoringService:
                 self._analyzed_samples += 1
                 self._last_analysis = now
 
+                # 2. Apply simulated rate limiting automatically.
+                mitigation_result = mitigation_engine.mitigate(metrics)
+                self._last_mitigation = mitigation_result
+
+                # 3. Store detection alerts with a cooldown.
                 if result["detected"]:
                     self._detected_samples += 1
 
-                    signature = tuple(
-                        sorted(
-                            alert["type"]
-                            for alert in result["alerts"]
-                        )
-                    )
+                    signature = tuple(sorted(
+                        alert["type"] for alert in result["alerts"]
+                    ))
 
                     current_time = time.monotonic()
 
