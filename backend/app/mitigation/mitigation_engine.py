@@ -36,10 +36,12 @@ class RateLimitMitigationEngine:
 
         self.request_limit = request_limit
         self.enabled = True
+
         return self.get_status()
 
     def disable(self):
         self.enabled = False
+
         self._last_result = {
             "enabled": False,
             "incoming_rps": 0,
@@ -48,6 +50,7 @@ class RateLimitMitigationEngine:
             "mitigation_rate": 0.0,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
+
         return self.get_status()
 
     def mitigate(self, metrics: dict):
@@ -75,11 +78,11 @@ class RateLimitMitigationEngine:
         }
 
         self._last_result = result
-
         self._statistics["total_samples"] += 1
 
         if self.enabled:
             self._statistics["protected_samples"] += 1
+
             self._statistics["protected_incoming_rps_sum"] += incoming_rps
             self._statistics["protected_allowed_rps_sum"] += allowed_rps
             self._statistics["protected_blocked_rps_sum"] += blocked_rps
@@ -91,15 +94,22 @@ class RateLimitMitigationEngine:
         samples = stats["protected_samples"]
 
         if samples > 0:
-            avg_incoming = stats["protected_incoming_rps_sum"] / samples
-            avg_allowed = stats["protected_allowed_rps_sum"] / samples
-            avg_blocked = stats["protected_blocked_rps_sum"] / samples
+            avg_incoming = (
+                stats["protected_incoming_rps_sum"] / samples
+            )
+            avg_allowed = (
+                stats["protected_allowed_rps_sum"] / samples
+            )
+            avg_blocked = (
+                stats["protected_blocked_rps_sum"] / samples
+            )
         else:
             avg_incoming = 0
             avg_allowed = 0
             avg_blocked = 0
 
         total_incoming = stats["protected_incoming_rps_sum"]
+        total_allowed = stats["protected_allowed_rps_sum"]
         total_blocked = stats["protected_blocked_rps_sum"]
 
         overall_rate = (
@@ -110,9 +120,15 @@ class RateLimitMitigationEngine:
         return {
             "total_samples": stats["total_samples"],
             "protected_samples": samples,
+
             "average_incoming_rps": round(avg_incoming, 2),
             "average_allowed_rps": round(avg_allowed, 2),
             "average_blocked_rps": round(avg_blocked, 2),
+
+            "protected_incoming_rps_sum": total_incoming,
+            "protected_allowed_rps_sum": total_allowed,
+            "protected_blocked_rps_sum": total_blocked,
+
             "overall_mitigation_rate": round(overall_rate, 2),
             "current_limit": self.request_limit,
             "mitigation_enabled": self.enabled,
@@ -126,6 +142,7 @@ class RateLimitMitigationEngine:
             "protected_allowed_rps_sum": 0,
             "protected_blocked_rps_sum": 0,
         }
+
         return self.get_analysis()
 
     def get_status(self):
